@@ -1,0 +1,15 @@
+{
+  "short_name": "Wedding Junction",
+  "name": "Wedding Junction - Find Your Perfect Wedding Vendors",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#f59e0b",
+  "background_color": "#fef3c7"
+}
