@@ -33,20 +33,34 @@ wedding-junction/
 ### 1. Clone the Repository
 
 ```bash
-git clone <repository-url>
-cd wedding-junction/wedding-junction
+git clone https://github.com/KhizarTanveer/Wedding-junction.git
+cd Wedding-junction
 ```
 
-### 2. Install Dependencies
+### 2. Run Setup Script
 
+We have provided a one-command setup script that automatically installs dependencies for both frontend and backend, configures your `.env` template files, and seeds the database.
+
+**On Windows:**
+Double-click `setup.bat` or run:
 ```bash
-# Install frontend dependencies
+./setup.bat
+```
+
+**On macOS/Linux:**
+```bash
+chmod +x setup.sh
+./setup.sh
+```
+
+Alternatively, if you prefer manual setup, you can run:
+```bash
+# Install dependencies for both frontend and backend in one go (using npm workspaces)
 npm install
 
-# Install backend dependencies
-cd backend
-npm install
-cd ..
+# Copy .env.example files to .env in backend/ and frontend/ folders and adjust variables.
+# Seed the database:
+npm run seed
 ```
 
 ### 3. Environment Setup
