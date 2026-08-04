@@ -1,5 +1,5 @@
 const Booking = require("../models/booking");
-const Vendor = require("../models/vendor");
+const Vendor = require("../models/Vendor");
 const mongoose = require("mongoose");
 const { sendBookingConfirmationEmail } = require("../utils/sendEmail");
 
