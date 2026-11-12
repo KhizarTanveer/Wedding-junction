@@ -18,7 +18,7 @@ const messageSchema = new mongoose.Schema(
       required: true,
     },
 
-    // Message content
+    
     content: {
       type: String,
       required: function () {
@@ -27,19 +27,19 @@ const messageSchema = new mongoose.Schema(
       maxlength: 2000,
     },
 
-    // Message type
+   
     messageType: {
       type: String,
       enum: ["text", "image", "price_update", "system"],
       default: "text",
     },
 
-    // For image messages
+   
     imageUrl: {
       type: String,
     },
 
-    // For price update messages
+   
     priceData: {
       amount: {
         type: Number,
@@ -49,7 +49,7 @@ const messageSchema = new mongoose.Schema(
       },
     },
 
-    // Read status
+    
     isRead: {
       type: Boolean,
       default: false,
@@ -58,12 +58,12 @@ const messageSchema = new mongoose.Schema(
       type: Date,
     },
 
-    // Delivery status
+   
     deliveredAt: {
       type: Date,
     },
 
-    // Edit tracking
+    
     isEdited: {
       type: Boolean,
       default: false,
@@ -75,7 +75,7 @@ const messageSchema = new mongoose.Schema(
       type: String,
     },
 
-    // Soft delete
+   
     isDeleted: {
       type: Boolean,
       default: false,
@@ -87,7 +87,7 @@ const messageSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Indexes for efficient queries
+
 messageSchema.index({ conversation: 1, createdAt: -1 });
 messageSchema.index({ sender: 1 });
 messageSchema.index({ conversation: 1, isRead: 1 });

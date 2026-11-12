@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-// Media schema for review images/videos
+
 const mediaSchema = new mongoose.Schema(
   {
     type: {
@@ -17,7 +17,7 @@ const mediaSchema = new mongoose.Schema(
   { _id: false }
 );
 
-// Report schema for flagged reviews
+
 const reportSchema = new mongoose.Schema(
   {
     user: {

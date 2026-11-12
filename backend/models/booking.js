@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-// All possible booking statuses
+
 const BOOKING_STATUSES = [
   "draft",
   "requested",

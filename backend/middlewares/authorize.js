@@ -1,8 +1,6 @@
 const Vendor = require("../models/vendor");
 
-/**
- * Role-based default permissions
- */
+
 const ROLE_PERMISSIONS = {
   user: {
     booking: ["create", "read_own", "update_own", "cancel_own"],
@@ -20,7 +18,7 @@ const ROLE_PERMISSIONS = {
     analytics: ["read_own"],
   },
   admin: {
-    "*": ["*"], // Full access
+    "*": ["*"], 
   },
 };
 
@@ -32,10 +30,10 @@ const ROLE_PERMISSIONS = {
  * @returns {boolean}
  */
 const checkPermission = (user, resource, action) => {
-  // Admin has all permissions
+  
   if (user.role === "admin") return true;
 
-  // Check role-based permissions
+ 
   const rolePerms = ROLE_PERMISSIONS[user.role] || {};
   const resourcePerms = rolePerms[resource] || [];
 
@@ -43,7 +41,7 @@ const checkPermission = (user, resource, action) => {
     return true;
   }
 
-  // Check custom user permissions
+ 
   if (user.permissions && user.permissions.length > 0) {
     const customPerm = user.permissions.find(
       (p) =>
@@ -76,7 +74,6 @@ const authorize = (resource, action, options = {}) => {
         });
       }
 
-      // Check account status
       if (user.accountStatus && user.accountStatus !== "active") {
         return res.status(403).json({
           status: "error",
@@ -84,12 +81,12 @@ const authorize = (resource, action, options = {}) => {
         });
       }
 
-      // Admin bypass
+     
       if (user.role === "admin") {
         return next();
       }
 
-      // Check if vendor is required
+     
       if (options.requireVendor || options.requireActiveVendor) {
         if (user.role !== "vendor") {
           return res.status(403).json({
@@ -98,7 +95,7 @@ const authorize = (resource, action, options = {}) => {
           });
         }
 
-        // Get vendor profile
+       
         const vendor = await Vendor.findOne({ owner: user._id });
 
         if (!vendor) {
@@ -115,11 +112,11 @@ const authorize = (resource, action, options = {}) => {
           });
         }
 
-        // Attach vendor to request
+        
         req.vendor = vendor;
       }
 
-      // Check permission
+     
       if (!checkPermission(user, resource, action)) {
         return res.status(403).json({
           status: "error",
@@ -127,7 +124,7 @@ const authorize = (resource, action, options = {}) => {
         });
       }
 
-      // Check ownership if required
+      
       if (options.checkOwnership) {
         const isOwner = await options.checkOwnership(req);
         if (!isOwner) {
@@ -163,12 +160,12 @@ const ownsBooking = (bookingIdParam = "id") => {
 
     if (!booking) return false;
 
-    // User owns the booking
+   
     if (booking.user.toString() === req.user._id.toString()) {
       return true;
     }
 
-    // Vendor is assigned to the booking
+   
     if (req.vendor && booking.vendor.toString() === req.vendor._id.toString()) {
       return true;
     }
@@ -238,19 +235,12 @@ const requireRole = (...roles) => {
   };
 };
 
-/**
- * Require admin role
- */
+
 const requireAdmin = requireRole("admin");
 
-/**
- * Require vendor role
- */
+
 const requireVendor = requireRole("vendor", "admin");
 
-/**
- * Require vendor with active profile
- */
 const requireActiveVendor = async (req, res, next) => {
   if (!req.user) {
     return res.status(401).json({

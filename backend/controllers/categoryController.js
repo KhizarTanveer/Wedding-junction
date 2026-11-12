@@ -1,6 +1,6 @@
 const Category = require("../models/category");
 
-// GET all categories
+
 const getCategories = async (req, res) => {
   try {
     const categories = await Category.find().select("name description image");
@@ -16,7 +16,6 @@ const getCategories = async (req, res) => {
   }
 };
 
-// GET single category by name
 const getCategoryByName = async (req, res) => {
   try {
     const category = await Category.findOne({ name: req.params.name });

@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const conversationSchema = new mongoose.Schema(
   {
-    // Participants
+    
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -19,7 +19,7 @@ const conversationSchema = new mongoose.Schema(
       required: true,
     },
 
-    // Context - what service they're discussing
+    
     context: {
       service: {
         type: String,
@@ -39,20 +39,20 @@ const conversationSchema = new mongoose.Schema(
       },
     },
 
-    // Conversation status
+    
     status: {
       type: String,
       enum: ["active", "agreed", "booking_created", "closed"],
       default: "active",
     },
 
-    // Link to booking once created
+    
     booking: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Booking",
     },
 
-    // Last message for preview
+   
     lastMessage: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Message",
@@ -62,7 +62,7 @@ const conversationSchema = new mongoose.Schema(
       default: Date.now,
     },
 
-    // Unread counts
+    
     unreadCountUser: {
       type: Number,
       default: 0,
@@ -72,7 +72,7 @@ const conversationSchema = new mongoose.Schema(
       default: 0,
     },
 
-    // Soft delete flags
+   
     deletedByUser: {
       type: Boolean,
       default: false,
@@ -85,7 +85,7 @@ const conversationSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Indexes for efficient queries
+
 conversationSchema.index({ user: 1, status: 1 });
 conversationSchema.index({ vendorUser: 1, status: 1 });
 conversationSchema.index({ vendor: 1 });

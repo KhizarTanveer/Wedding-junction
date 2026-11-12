@@ -3,12 +3,11 @@ const Vendor = require("../models/Vendor");
 const mongoose = require("mongoose");
 const { sendBookingConfirmationEmail } = require("../utils/sendEmail");
 
-// CREATE BOOKING
+
 const createBooking = async (req, res) => {
   try {
     const { userName, userEmail, vendorId, service, price, image } = req.body;
 
-    // Validate required fields
     if (!service || !price) {
       return res.status(400).json({
         status: "error",
@@ -16,7 +15,7 @@ const createBooking = async (req, res) => {
       });
     }
 
-    // Validate price is a positive number
+    
     if (typeof price !== "number" || price <= 0) {
       return res.status(400).json({
         status: "error",
@@ -24,7 +23,7 @@ const createBooking = async (req, res) => {
       });
     }
 
-    // Validate vendorId if provided
+    
     if (vendorId) {
       if (!mongoose.Types.ObjectId.isValid(vendorId)) {
         return res.status(400).json({
@@ -65,11 +64,11 @@ const createBooking = async (req, res) => {
   }
 };
 
-// GET USER'S PENDING BOOKINGS
+
 const getBookings = async (req, res) => {
   try {
     const bookings = await Booking.find({
-      user: req.user._id, // Only return bookings owned by current user
+      user: req.user._id, 
       isConfirmed: false,
     }).sort({ createdAt: -1 });
 
@@ -85,7 +84,7 @@ const getBookings = async (req, res) => {
   }
 };
 
-// GET SINGLE BOOKING BY ID (with ownership check)
+
 const getBookingById = async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id);
@@ -97,7 +96,7 @@ const getBookingById = async (req, res) => {
       });
     }
 
-    // Validate ownership
+    
     if (booking.user.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         status: "error",
@@ -118,7 +117,7 @@ const getBookingById = async (req, res) => {
   }
 };
 
-// DELETE BOOKING (with ownership check)
+
 const deleteBooking = async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id);
@@ -130,7 +129,7 @@ const deleteBooking = async (req, res) => {
       });
     }
 
-    // Validate ownership
+    
     if (booking.user.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         status: "error",
@@ -151,7 +150,7 @@ const deleteBooking = async (req, res) => {
   }
 };
 
-// UPDATE BOOKING (with ownership check)
+
 const confirmBooking = async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id);
@@ -163,7 +162,6 @@ const confirmBooking = async (req, res) => {
       });
     }
 
-    // Validate ownership
     if (booking.user.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         status: "error",
@@ -171,15 +169,15 @@ const confirmBooking = async (req, res) => {
       });
     }
 
-    // Build update object
+    
     const updateData = {};
 
-    // Handle client details update
+   
     if (req.body.clientDetails) {
       updateData.clientDetails = req.body.clientDetails;
     }
 
-    // Handle status update with transition validation
+    
     if (req.body.status) {
       const validStatuses = [
         "draft", "requested", "vendor_accepted", "vendor_declined",
@@ -195,7 +193,6 @@ const confirmBooking = async (req, res) => {
         });
       }
 
-      // Validate status transition using the model's method
       if (!booking.canTransitionTo(req.body.status)) {
         return res.status(400).json({
           status: "error",
@@ -205,7 +202,7 @@ const confirmBooking = async (req, res) => {
 
       updateData.status = req.body.status;
 
-      // Update isConfirmed flag if status is confirmed
+     
       if (req.body.status === "confirmed") {
         updateData.isConfirmed = true;
       }
@@ -217,7 +214,7 @@ const confirmBooking = async (req, res) => {
       { new: true, runValidators: true }
     ).populate("vendor", "name businessInfo");
 
-    // Send confirmation email if booking was just confirmed
+    
     if (req.body.status === "confirmed" && updatedBooking) {
       const vendorName = updatedBooking.vendor?.name ||
                          updatedBooking.vendor?.businessInfo?.name ||

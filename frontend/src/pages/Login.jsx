@@ -29,12 +29,21 @@ function Login() {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        // Use generic error message for all auth failures to prevent enumeration
-        setError("Invalid email or password. Please try again.");
-        setLoading(false);
+        // Surface lockout (423), rate-limit (429) and remaining-attempt warnings
+        // from the server; everything else gets the generic message.
+        const serverMessage = typeof data.message === "string" ? data.message : "";
+        const isActionable =
+          res.status === 423 ||
+          res.status === 429 ||
+          /attempt|locked/i.test(serverMessage);
+        setError(
+          isActionable && serverMessage
+            ? serverMessage
+            : "Invalid email or password. Please try again."
+        );
         return;
       }
 

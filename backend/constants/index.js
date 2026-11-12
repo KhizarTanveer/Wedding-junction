@@ -10,13 +10,12 @@ const {
 const { ERROR_MESSAGES, SUCCESS_MESSAGES } = require("./messages");
 
 module.exports = {
-  // Roles
+  
   USER_ROLES,
   VENDOR_TIERS,
   PERMISSION_SCOPES,
   ACCOUNT_STATUSES,
 
-  // Statuses
   BOOKING_STATUSES,
   BOOKING_STATUS_LIST,
   VALID_TRANSITIONS,
@@ -24,7 +23,6 @@ module.exports = {
   PAYMENT_STATUSES,
   TRANSACTION_TYPES,
 
-  // Messages
   ERROR_MESSAGES,
   SUCCESS_MESSAGES,
 };

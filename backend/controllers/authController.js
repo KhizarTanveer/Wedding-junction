@@ -5,12 +5,12 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { sendPasswordResetEmail } = require("../utils/sendEmail");
 
-// Generate JWT Token
+
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "30d" });
 };
 
-// Password strength validation (simple - just minimum length)
+
 const validatePasswordStrength = (password) => {
   const errors = [];
 
@@ -21,12 +21,12 @@ const validatePasswordStrength = (password) => {
   return errors;
 };
 
-// Hash reset token for secure storage
+
 const hashToken = (token) => {
   return crypto.createHash("sha256").update(token).digest("hex");
 };
 
-// SIGN UP
+
 const signup = async (req, res) => {
   try {
     const { name, email, password, registerAsVendor, vendorData } = req.body;
@@ -46,7 +46,7 @@ const signup = async (req, res) => {
       });
     }
 
-    // Validate password strength
+    
     const passwordErrors = validatePasswordStrength(password);
     if (passwordErrors.length > 0) {
       return res.status(400).json({
@@ -56,7 +56,7 @@ const signup = async (req, res) => {
       });
     }
 
-    // Validate vendor data if registering as vendor
+    
     if (registerAsVendor && !vendorData) {
       return res.status(400).json({
         status: "error",
@@ -64,7 +64,7 @@ const signup = async (req, res) => {
       });
     }
 
-    // Hash password before storing
+   
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -72,7 +72,7 @@ const signup = async (req, res) => {
 
     let vendorApplication = null;
 
-    // If registering as vendor, create VendorApplication
+   
     if (registerAsVendor && vendorData) {
       try {
         vendorApplication = await VendorApplication.create({
@@ -111,13 +111,12 @@ const signup = async (req, res) => {
           termsAcceptedAt: new Date(),
         });
 
-        // Link application to user (just the ObjectId reference)
+        
         newUser.vendorApplication = vendorApplication._id;
         await newUser.save();
       } catch (vendorError) {
         console.error("Failed to create vendor application:", vendorError);
-        // User created successfully but vendor application failed
-        // Return success with warning
+       
         return res.status(201).json({
           status: "success",
           message: "Account created but vendor application failed. Please apply again from your profile.",
@@ -156,7 +155,7 @@ const signup = async (req, res) => {
   }
 };
 
-// LOGIN
+
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -176,7 +175,7 @@ const login = async (req, res) => {
       });
     }
 
-    // Check if account is locked
+    
     if (user.lockUntil && user.lockUntil > Date.now()) {
       const remainingTime = Math.ceil((user.lockUntil - Date.now()) / 60000);
       return res.status(423).json({
@@ -185,10 +184,10 @@ const login = async (req, res) => {
       });
     }
 
-    // Compare hashed password
+    
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      // Increment failed login attempts
+      
       await user.incLoginAttempts();
 
       const attemptsLeft = Math.max(0, 5 - (user.failedLoginAttempts + 1));
@@ -202,7 +201,7 @@ const login = async (req, res) => {
       });
     }
 
-    // Reset login attempts on successful login
+
     await user.resetLoginAttempts();
 
     return res.status(200).json({
@@ -225,33 +224,33 @@ const login = async (req, res) => {
   }
 };
 
-// FORGOT PASSWORD
+
 const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
 
     const user = await User.findOne({ email });
     if (!user) {
-      // Return success to prevent email enumeration attacks
+      
       return res.status(200).json({
         status: "success",
         message: "If an account exists, a password reset link will be sent",
       });
     }
 
-    // Generate random token
+    
     const token = crypto.randomBytes(32).toString("hex");
 
-    // Hash token before storing (security best practice)
+    
     user.resetToken = hashToken(token);
-    user.resetTokenExpire = Date.now() + 3600000; // 1 hour expiration
+    user.resetTokenExpire = Date.now() + 3600000; 
     await user.save();
 
-    // Send the unhashed token to the user via email
+    
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
     const resetLink = `${frontendUrl}/reset-password/${token}`;
 
-    // Send password reset email
+    
     const emailSent = await sendPasswordResetEmail(email, resetLink);
 
     return res.status(200).json({
@@ -259,7 +258,7 @@ const forgotPassword = async (req, res) => {
       message: emailSent
         ? "Password reset link sent to your email"
         : "Password reset link generated (email service not configured)",
-      // Only include resetLink in development mode when email is not configured
+      
       ...(process.env.NODE_ENV === "development" && !emailSent && { resetLink }),
     });
   } catch (error) {
@@ -271,13 +270,13 @@ const forgotPassword = async (req, res) => {
   }
 };
 
-// RESET PASSWORD
+
 const resetPassword = async (req, res) => {
   try {
     const { token } = req.params;
     const { password } = req.body;
 
-    // Hash the incoming token and compare with stored hash
+    
     const hashedToken = hashToken(token);
 
     const user = await User.findOne({
@@ -292,7 +291,7 @@ const resetPassword = async (req, res) => {
       });
     }
 
-    // Validate password strength
+    
     const passwordErrors = validatePasswordStrength(password);
     if (passwordErrors.length > 0) {
       return res.status(400).json({
@@ -302,14 +301,14 @@ const resetPassword = async (req, res) => {
       });
     }
 
-    // Hash the new password
+    
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(password, salt);
     user.resetToken = undefined;
     user.resetTokenExpire = undefined;
     user.lastPasswordChange = new Date();
 
-    // Reset failed login attempts on password change
+    
     user.failedLoginAttempts = 0;
     user.lockUntil = undefined;
 
@@ -328,11 +327,10 @@ const resetPassword = async (req, res) => {
   }
 };
 
-// LOGOUT (client-side token removal, but we can track it server-side)
+
 const logout = async (req, res) => {
   try {
-    // In a more complex system, you would invalidate the token here
-    // For now, we just return success as the client removes the token
+    
     return res.status(200).json({
       status: "success",
       message: "Logged out successfully",
@@ -345,7 +343,7 @@ const logout = async (req, res) => {
   }
 };
 
-// GET CURRENT USER
+
 const getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select("-password");
@@ -374,12 +372,12 @@ const getMe = async (req, res) => {
   }
 };
 
-// APPLY TO BECOME A VENDOR
+
 const applyAsVendor = async (req, res) => {
   try {
     const { businessInfo, serviceDetails, contact, location, termsAccepted } = req.body;
 
-    // Validate required fields
+    
     if (!businessInfo?.name || !businessInfo?.description) {
       return res.status(400).json({
         status: "error",
@@ -431,7 +429,7 @@ const applyAsVendor = async (req, res) => {
       });
     }
 
-    // Check for existing pending/submitted application
+    
     const existingApplication = await VendorApplication.findOne({
       applicant: user._id,
       status: { $in: ["draft", "submitted", "under_review", "documents_pending"] },
@@ -444,7 +442,7 @@ const applyAsVendor = async (req, res) => {
       });
     }
 
-    // Create VendorApplication document
+    
     const vendorApplication = await VendorApplication.create({
       applicant: user._id,
       businessInfo: {
@@ -491,7 +489,7 @@ const applyAsVendor = async (req, res) => {
       termsAcceptedAt: new Date(),
     });
 
-    // Update user with application reference (just the ObjectId)
+    
     user.vendorApplication = vendorApplication._id;
     await user.save();
 
@@ -518,12 +516,12 @@ const applyAsVendor = async (req, res) => {
   }
 };
 
-// GET VENDOR APPLICATION STATUS
+
 const getApplicationStatus = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select("vendorApplication role");
 
-    // If no application reference, return null
+    
     if (!user.vendorApplication) {
       return res.status(200).json({
         status: "success",
@@ -531,7 +529,7 @@ const getApplicationStatus = async (req, res) => {
       });
     }
 
-    // If user is already a vendor, return approved status
+    
     if (user.role === "vendor") {
       return res.status(200).json({
         status: "success",
@@ -541,7 +539,7 @@ const getApplicationStatus = async (req, res) => {
       });
     }
 
-    // Populate the full application document
+    
     const application = await VendorApplication.findById(user.vendorApplication)
       .populate("serviceDetails.category", "name")
       .select("status businessInfo serviceDetails contact location submittedAt review createdAt");
@@ -580,7 +578,7 @@ const getApplicationStatus = async (req, res) => {
   }
 };
 
-// UPDATE USER PROFILE
+
 const updateProfile = async (req, res) => {
   try {
     const allowedFields = ["name", "phone", "avatar", "notifications", "preferences"];
@@ -592,7 +590,7 @@ const updateProfile = async (req, res) => {
       }
     }
 
-    // Handle avatar from Cloudinary upload
+    
     if (req.uploadedImage) {
       updates.avatar = req.uploadedImage.url;
     }
@@ -624,7 +622,7 @@ const updateProfile = async (req, res) => {
   }
 };
 
-// CHANGE PASSWORD
+
 const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -636,7 +634,7 @@ const changePassword = async (req, res) => {
       });
     }
 
-    // Validate password strength
+    
     const passwordErrors = validatePasswordStrength(newPassword);
     if (passwordErrors.length > 0) {
       return res.status(400).json({
@@ -674,7 +672,7 @@ const changePassword = async (req, res) => {
   }
 };
 
-// DELETE ACCOUNT
+
 const deleteAccount = async (req, res) => {
   try {
     const { password } = req.body;
@@ -696,7 +694,7 @@ const deleteAccount = async (req, res) => {
       });
     }
 
-    // Prevent admin self-deletion
+    
     if (user.role === "admin") {
       return res.status(403).json({
         status: "error",
@@ -719,11 +717,10 @@ const deleteAccount = async (req, res) => {
   }
 };
 
-// RESET TEST USERS (only in test/development mode)
-// Resets failed login attempts and account locks for test users
+
 const resetTestUsers = async (req, res) => {
   try {
-    // Only allow in test/development mode
+    
     if (process.env.NODE_ENV !== 'test' && process.env.NODE_ENV !== 'development') {
       return res.status(403).json({
         status: "error",
@@ -731,14 +728,14 @@ const resetTestUsers = async (req, res) => {
       });
     }
 
-    // Test user emails to reset
+  
     const testEmails = [
       'testuser@example.com',
       'testvendor@example.com',
       'admin@weddingjunction.com',
     ];
 
-    // Reset failed login attempts and lock status for all test users
+    
     const result = await User.updateMany(
       { email: { $in: testEmails } },
       {

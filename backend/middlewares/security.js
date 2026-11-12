@@ -1,37 +1,29 @@
-/**
- * Security Middleware
- * Provides security headers, sanitization, and protection
- */
-
-/**
- * Set security headers
- */
 const securityHeaders = (req, res, next) => {
-  // Prevent MIME type sniffing
+  
   res.setHeader("X-Content-Type-Options", "nosniff");
 
-  // Prevent clickjacking
+ 
   res.setHeader("X-Frame-Options", "DENY");
 
-  // Enable XSS filter in browsers
+  
   res.setHeader("X-XSS-Protection", "1; mode=block");
 
-  // Control referrer information
+ 
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
 
-  // Permissions policy
+  
   res.setHeader(
     "Permissions-Policy",
     "camera=(), microphone=(), geolocation=()"
   );
 
-  // Content Security Policy (basic)
+  
   res.setHeader(
     "Content-Security-Policy",
     "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' https:; connect-src 'self' https:;"
   );
 
-  // Strict Transport Security (for HTTPS)
+ 
   if (process.env.NODE_ENV === "production") {
     res.setHeader(
       "Strict-Transport-Security",
@@ -42,10 +34,7 @@ const securityHeaders = (req, res, next) => {
   next();
 };
 
-/**
- * Sanitize request body to prevent NoSQL injection
- * Removes $ and . from keys
- */
+
 const sanitizeBody = (req, res, next) => {
   if (req.body) {
     req.body = sanitizeObject(req.body);
@@ -75,17 +64,17 @@ const sanitizeObject = (obj) => {
 
   const sanitized = {};
   for (const key of Object.keys(obj)) {
-    // Remove keys starting with $ (MongoDB operators)
+    
     if (key.startsWith("$")) {
       continue;
     }
 
-    // Remove keys containing . (nested object notation)
+   
     if (key.includes(".")) {
       continue;
     }
 
-    // Recursively sanitize nested objects
+   
     sanitized[key] = sanitizeObject(obj[key]);
   }
 
@@ -109,9 +98,7 @@ const sanitizeString = (str) => {
     .replace(/\//g, "&#x2F;");
 };
 
-/**
- * Sanitize request body strings for XSS
- */
+
 const xssSanitize = (req, res, next) => {
   if (req.body) {
     req.body = sanitizeStringsInObject(req.body);
@@ -143,10 +130,6 @@ const sanitizeStringsInObject = (obj) => {
   return result;
 };
 
-/**
- * Prevent HTTP Parameter Pollution
- * Only keeps the last value for each parameter
- */
 const preventHPP = (whitelist = []) => {
   return (req, res, next) => {
     if (req.query) {
@@ -160,9 +143,7 @@ const preventHPP = (whitelist = []) => {
   };
 };
 
-/**
- * CORS configuration middleware
- */
+
 const corsConfig = (options = {}) => {
   const allowedOrigins = options.origins || [
     "http://localhost:3000",
@@ -182,9 +163,9 @@ const corsConfig = (options = {}) => {
       "Content-Type, Authorization, X-Requested-With, X-CSRF-Token"
     );
     res.setHeader("Access-Control-Allow-Credentials", "true");
-    res.setHeader("Access-Control-Max-Age", "86400"); // 24 hours
+    res.setHeader("Access-Control-Max-Age", "86400"); 
 
-    // Handle preflight requests
+   
     if (req.method === "OPTIONS") {
       return res.status(204).end();
     }
@@ -193,14 +174,12 @@ const corsConfig = (options = {}) => {
   };
 };
 
-/**
- * Request size limiter
- */
+
 const limitRequestSize = (maxSize = "10kb") => {
   const parseSize = (size) => {
     if (typeof size === "number") return size;
     const match = size.match(/^(\d+)(kb|mb|gb)?$/i);
-    if (!match) return 10240; // Default 10kb
+    if (!match) return 10240; 
 
     const num = parseInt(match[1], 10);
     const unit = (match[2] || "b").toLowerCase();
@@ -235,19 +214,17 @@ const limitRequestSize = (maxSize = "10kb") => {
   };
 };
 
-/**
- * Detect and block suspicious requests
- */
+
 const detectSuspiciousActivity = (req, res, next) => {
   const suspiciousPatterns = [
-    /(\.\.|%2e%2e)/i, // Directory traversal
-    /<script/i, // Script injection
-    /javascript:/i, // JavaScript protocol
-    /vbscript:/i, // VBScript protocol
-    /on\w+\s*=/i, // Event handlers
-    /union\s+select/i, // SQL injection
-    /\bexec\s*\(/i, // Code execution
-    /\beval\s*\(/i, // Eval execution
+    /(\.\.|%2e%2e)/i, 
+    /<script/i, 
+    /javascript:/i, 
+    /vbscript:/i, 
+    /on\w+\s*=/i, 
+    /union\s+select/i,
+    /\bexec\s*\(/i,
+    /\beval\s*\(/i, 
   ];
 
   const checkString = (str) => {
@@ -267,7 +244,7 @@ const detectSuspiciousActivity = (req, res, next) => {
     return false;
   };
 
-  // Check URL
+  
   if (checkString(req.url)) {
     console.warn(`Suspicious URL detected: ${req.url} from ${req.ip}`);
     return res.status(400).json({
@@ -276,7 +253,7 @@ const detectSuspiciousActivity = (req, res, next) => {
     });
   }
 
-  // Check body
+ 
   if (checkObject(req.body)) {
     console.warn(`Suspicious body detected from ${req.ip}`);
     return res.status(400).json({
@@ -285,7 +262,7 @@ const detectSuspiciousActivity = (req, res, next) => {
     });
   }
 
-  // Check query
+ 
   if (checkObject(req.query)) {
     console.warn(`Suspicious query detected from ${req.ip}`);
     return res.status(400).json({
@@ -297,21 +274,18 @@ const detectSuspiciousActivity = (req, res, next) => {
   next();
 };
 
-/**
- * Log security events
- */
+
 const securityLogger = (req, res, next) => {
-  // Log authentication attempts
+ 
   if (req.path.includes("/login") || req.path.includes("/signup")) {
     console.log(`Auth attempt: ${req.method} ${req.path} from ${req.ip}`);
   }
 
-  // Log admin actions
+  
   if (req.user?.role === "admin") {
     console.log(`Admin action: ${req.method} ${req.path} by ${req.user.email}`);
   }
 
-  // Log sensitive operations
   const sensitivePatterns = ["/password", "/delete", "/admin"];
   if (sensitivePatterns.some((pattern) => req.path.includes(pattern))) {
     console.log(
@@ -322,9 +296,7 @@ const securityLogger = (req, res, next) => {
   next();
 };
 
-/**
- * Apply all security middleware
- */
+
 const applySecurity = (app) => {
   app.use(securityHeaders);
   app.use(sanitizeBody);

@@ -2,10 +2,7 @@ const Review = require("../models/review");
 const Booking = require("../models/booking");
 const Vendor = require("../models/vendor");
 
-/**
- * Create a new review
- * POST /api/reviews
- */
+
 const createReview = async (req, res) => {
   try {
     const {
@@ -16,7 +13,7 @@ const createReview = async (req, res) => {
       eventDetails,
     } = req.body;
 
-    // Validate booking exists and belongs to user
+   
     const booking = await Booking.findById(bookingId).populate("vendor");
 
     if (!booking) {
@@ -33,7 +30,7 @@ const createReview = async (req, res) => {
       });
     }
 
-    // Check if booking is completed
+    
     if (booking.status !== "completed" && booking.status !== "closed") {
       return res.status(400).json({
         status: "error",
@@ -41,7 +38,7 @@ const createReview = async (req, res) => {
       });
     }
 
-    // Check if review already exists
+    
     const existingReview = await Review.findOne({ booking: bookingId });
     if (existingReview) {
       return res.status(400).json({
@@ -50,7 +47,7 @@ const createReview = async (req, res) => {
       });
     }
 
-    // Create review
+    
     const review = new Review({
       vendor: booking.vendor._id,
       booking: bookingId,
@@ -63,13 +60,13 @@ const createReview = async (req, res) => {
         eventDate: booking.clientDetails?.eventDate,
         location: booking.clientDetails?.address,
       },
-      status: "pending", // Requires moderation
+      status: "pending", 
       isVerifiedBooking: true,
     });
 
     await review.save();
 
-    // Update booking with review reference
+    
     booking.review = review._id;
     await booking.save();
 
@@ -87,10 +84,7 @@ const createReview = async (req, res) => {
   }
 };
 
-/**
- * Get reviews for a vendor
- * GET /api/vendors/:vendorId/reviews
- */
+
 const getVendorReviews = async (req, res) => {
   try {
     const { vendorId } = req.params;
@@ -140,10 +134,7 @@ const getVendorReviews = async (req, res) => {
   }
 };
 
-/**
- * Get a single review
- * GET /api/reviews/:id
- */
+
 const getReview = async (req, res) => {
   try {
     const review = await Review.findById(req.params.id)
@@ -170,10 +161,7 @@ const getReview = async (req, res) => {
   }
 };
 
-/**
- * Update a review (by reviewer)
- * PUT /api/reviews/:id
- */
+
 const updateReview = async (req, res) => {
   try {
     const review = await Review.findById(req.params.id);
@@ -192,14 +180,14 @@ const updateReview = async (req, res) => {
       });
     }
 
-    // Store edit history
+    
     review.editHistory.push({
       editedAt: new Date(),
       previousText: review.content.text,
       previousRating: review.ratings.overall,
     });
 
-    // Update allowed fields
+    
     const { ratings, content } = req.body;
 
     if (ratings) {
@@ -210,7 +198,7 @@ const updateReview = async (req, res) => {
       review.content = { ...review.content, ...content };
     }
 
-    // Reset to pending for re-moderation
+    
     review.status = "pending";
 
     await review.save();
@@ -229,10 +217,7 @@ const updateReview = async (req, res) => {
   }
 };
 
-/**
- * Delete a review (by reviewer or admin)
- * DELETE /api/reviews/:id
- */
+
 const deleteReview = async (req, res) => {
   try {
     const review = await Review.findById(req.params.id);
@@ -254,14 +239,14 @@ const deleteReview = async (req, res) => {
       });
     }
 
-    // Remove review reference from booking
+    
     await Booking.findByIdAndUpdate(review.booking, {
       $unset: { review: 1 },
     });
 
     await review.deleteOne();
 
-    // Update vendor rating
+    
     await Review.updateVendorRating(review.vendor);
 
     res.json({
@@ -277,10 +262,7 @@ const deleteReview = async (req, res) => {
   }
 };
 
-/**
- * Add vendor response to review
- * POST /api/reviews/:id/response
- */
+
 const addResponse = async (req, res) => {
   try {
     const review = await Review.findById(req.params.id).populate("vendor");
@@ -292,7 +274,7 @@ const addResponse = async (req, res) => {
       });
     }
 
-    // Check if user is the vendor owner
+    
     if (review.vendor.owner.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         status: "error",
@@ -325,10 +307,7 @@ const addResponse = async (req, res) => {
   }
 };
 
-/**
- * Mark review as helpful
- * POST /api/reviews/:id/helpful
- */
+
 const markHelpful = async (req, res) => {
   try {
     const review = await Review.findById(req.params.id);
@@ -360,10 +339,7 @@ const markHelpful = async (req, res) => {
   }
 };
 
-/**
- * Report a review
- * POST /api/reviews/:id/report
- */
+
 const reportReview = async (req, res) => {
   try {
     const review = await Review.findById(req.params.id);
@@ -399,10 +375,7 @@ const reportReview = async (req, res) => {
   }
 };
 
-/**
- * Moderate a review (admin only)
- * PATCH /api/reviews/:id/moderate
- */
+
 const moderateReview = async (req, res) => {
   try {
     const { status, reason, notes } = req.body;
@@ -433,7 +406,7 @@ const moderateReview = async (req, res) => {
 
     await review.save();
 
-    // Update vendor rating if approved
+    
     if (status === "approved") {
       await Review.updateVendorRating(review.vendor);
     }
@@ -452,10 +425,7 @@ const moderateReview = async (req, res) => {
   }
 };
 
-/**
- * Get pending reviews (admin only)
- * GET /api/admin/reviews/pending
- */
+
 const getPendingReviews = async (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query;
@@ -492,10 +462,7 @@ const getPendingReviews = async (req, res) => {
   }
 };
 
-/**
- * Get my reviews
- * GET /api/reviews/my
- */
+
 const getMyReviews = async (req, res) => {
   try {
     const { page = 1, limit = 10 } = req.query;

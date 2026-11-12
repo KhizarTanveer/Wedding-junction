@@ -3,12 +3,12 @@ const Message = require("../models/message");
 const Vendor = require("../models/vendor");
 const Booking = require("../models/booking");
 
-// START A NEW CONVERSATION
+
 const startConversation = async (req, res) => {
   try {
     const { vendorId, service, message } = req.body;
 
-    // Validate vendorId
+    
     if (!vendorId) {
       return res.status(400).json({
         status: "error",
@@ -16,7 +16,7 @@ const startConversation = async (req, res) => {
       });
     }
 
-    // Find the vendor
+ 
     const vendor = await Vendor.findById(vendorId);
     if (!vendor) {
       return res.status(404).json({
@@ -25,7 +25,6 @@ const startConversation = async (req, res) => {
       });
     }
 
-    // Check if vendor has an owner
     if (!vendor.owner) {
       return res.status(400).json({
         status: "error",
@@ -33,7 +32,7 @@ const startConversation = async (req, res) => {
       });
     }
 
-    // Get service name - use provided service or fallback to vendor's service
+   
     const serviceName = service || vendor.service;
     if (!serviceName) {
       return res.status(400).json({
@@ -42,8 +41,7 @@ const startConversation = async (req, res) => {
       });
     }
 
-    // Use atomic findOneAndUpdate with upsert to prevent race conditions
-    // This ensures only one conversation is created even with concurrent requests
+   
     let conversation = await Conversation.findOneAndUpdate(
       {
         user: req.user._id,
@@ -67,10 +65,10 @@ const startConversation = async (req, res) => {
       { upsert: true, new: true }
     );
 
-    // Check if this was an existing conversation (no $setOnInsert fields were applied)
+    
     const isExisting = conversation.createdAt < new Date(Date.now() - 1000);
 
-    // If initial message provided and this is a NEW conversation, create the message
+   
     if (message && !isExisting) {
       const newMessage = await Message.create({
         conversation: conversation._id,
@@ -85,7 +83,7 @@ const startConversation = async (req, res) => {
       await conversation.save();
     }
 
-    // Populate vendor details
+    
     await conversation.populate("vendor", "name image service price");
 
     return res.status(isExisting ? 200 : 201).json({
@@ -102,7 +100,7 @@ const startConversation = async (req, res) => {
   }
 };
 
-// GET ALL CONVERSATIONS FOR CURRENT USER
+
 const getConversations = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -110,10 +108,10 @@ const getConversations = async (req, res) => {
 
     let query;
     if (userRole === "vendor") {
-      // Vendor sees conversations where they are the vendor and not deleted by vendor
+      
       query = { vendorUser: userId, deletedByVendor: { $ne: true } };
     } else {
-      // Regular user (including admin) sees their own conversations not deleted by user
+     
       query = { user: userId, deletedByUser: { $ne: true } };
     }
 
@@ -136,7 +134,7 @@ const getConversations = async (req, res) => {
   }
 };
 
-// GET SINGLE CONVERSATION WITH MESSAGES
+
 const getConversation = async (req, res) => {
   try {
     const conversation = await Conversation.findById(req.params.id)
@@ -150,7 +148,7 @@ const getConversation = async (req, res) => {
       });
     }
 
-    // Verify user is a participant or admin
+   
     const isAdmin = req.user.role === "admin";
     const isParticipant =
       isAdmin ||
@@ -164,7 +162,7 @@ const getConversation = async (req, res) => {
       });
     }
 
-    // Get messages with pagination
+    
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
     const skip = (page - 1) * limit;
@@ -182,7 +180,7 @@ const getConversation = async (req, res) => {
     return res.status(200).json({
       status: "success",
       conversation,
-      messages: messages.reverse(), // Oldest first
+      messages: messages.reverse(), 
       pagination: {
         page,
         limit,
@@ -199,7 +197,7 @@ const getConversation = async (req, res) => {
   }
 };
 
-// SEND A MESSAGE (REST fallback for when socket is not available)
+
 const sendMessage = async (req, res) => {
   try {
     const { content, messageType = "text" } = req.body;
@@ -213,7 +211,7 @@ const sendMessage = async (req, res) => {
       });
     }
 
-    // Verify user is a participant or admin
+    
     const isUser = conversation.user.toString() === req.user._id.toString();
     const isVendor =
       conversation.vendorUser.toString() === req.user._id.toString();
@@ -231,7 +229,7 @@ const sendMessage = async (req, res) => {
     else if (isVendor) senderRole = "vendor";
     else senderRole = "user";
 
-    // Create message
+    
     const message = await Message.create({
       conversation: conversationId,
       sender: req.user._id,
@@ -240,11 +238,11 @@ const sendMessage = async (req, res) => {
       messageType,
     });
 
-    // Update conversation
+  
     conversation.lastMessage = message._id;
     conversation.lastMessageAt = new Date();
 
-    // Update unread count for the other party
+    
     if (senderRole === "user") {
       conversation.unreadCountVendor += 1;
     } else {
@@ -253,10 +251,10 @@ const sendMessage = async (req, res) => {
 
     await conversation.save();
 
-    // Populate sender info
+   
     await message.populate("sender", "name avatar");
 
-    // Emit socket event if available
+    
     const io = req.app.get("io");
     if (io) {
       io.to(`conversation:${conversationId}`).emit("new_message", {
@@ -278,7 +276,7 @@ const sendMessage = async (req, res) => {
   }
 };
 
-// UPLOAD IMAGE MESSAGE
+
 const uploadImage = async (req, res) => {
   try {
     if (!req.uploadedImage) {
@@ -298,7 +296,7 @@ const uploadImage = async (req, res) => {
       });
     }
 
-    // Verify user is a participant or admin
+    
     const isUser = conversation.user.toString() === req.user._id.toString();
     const isVendor =
       conversation.vendorUser.toString() === req.user._id.toString();
@@ -316,7 +314,7 @@ const uploadImage = async (req, res) => {
     else if (isVendor) senderRole = "vendor";
     else senderRole = "user";
 
-    // Create image message with Cloudinary URL
+   
     const message = await Message.create({
       conversation: conversationId,
       sender: req.user._id,
@@ -326,7 +324,7 @@ const uploadImage = async (req, res) => {
       content: "Sent an image",
     });
 
-    // Update conversation
+    
     conversation.lastMessage = message._id;
     conversation.lastMessageAt = new Date();
     if (senderRole === "user") {
@@ -338,7 +336,7 @@ const uploadImage = async (req, res) => {
 
     await message.populate("sender", "name avatar");
 
-    // Emit socket event
+   
     const io = req.app.get("io");
     if (io) {
       io.to(`conversation:${conversationId}`).emit("new_message", {
@@ -360,13 +358,13 @@ const uploadImage = async (req, res) => {
   }
 };
 
-// UPDATE AGREED PRICE
+
 const updatePrice = async (req, res) => {
   try {
     const { price } = req.body;
     const conversationId = req.params.id;
 
-    // Validate price is a positive number
+   
     if (typeof price !== "number" || isNaN(price) || price <= 0) {
       return res.status(400).json({
         status: "error",
@@ -374,8 +372,8 @@ const updatePrice = async (req, res) => {
       });
     }
 
-    // Add a reasonable maximum price limit
-    const MAX_PRICE = 100000000; // 10 crore
+   
+    const MAX_PRICE = 100000000; 
     if (price > MAX_PRICE) {
       return res.status(400).json({
         status: "error",
@@ -391,7 +389,7 @@ const updatePrice = async (req, res) => {
       });
     }
 
-    // Only vendor can set the agreed price
+    
     const isVendor =
       conversation.vendorUser.toString() === req.user._id.toString();
     if (!isVendor) {
@@ -406,7 +404,7 @@ const updatePrice = async (req, res) => {
     conversation.status = "agreed";
     await conversation.save();
 
-    // Create system message about price update
+    
     const message = await Message.create({
       conversation: conversationId,
       sender: req.user._id,
@@ -424,7 +422,6 @@ const updatePrice = async (req, res) => {
     conversation.unreadCountUser += 1;
     await conversation.save();
 
-    // Emit socket event
     const io = req.app.get("io");
     if (io) {
       io.to(`conversation:${conversationId}`).emit("price_update", {
@@ -449,7 +446,7 @@ const updatePrice = async (req, res) => {
   }
 };
 
-// CREATE BOOKING FROM CHAT
+
 const createBookingFromChat = async (req, res) => {
   try {
     const conversationId = req.params.id;
@@ -464,7 +461,7 @@ const createBookingFromChat = async (req, res) => {
       });
     }
 
-    // Only the user can create a booking
+    
     if (conversation.user.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         status: "error",
@@ -472,7 +469,7 @@ const createBookingFromChat = async (req, res) => {
       });
     }
 
-    // Check if booking already created from this conversation
+    
     if (conversation.booking) {
       return res.status(400).json({
         status: "error",
@@ -483,7 +480,7 @@ const createBookingFromChat = async (req, res) => {
     const finalPrice =
       conversation.context.agreedPrice || conversation.context.originalPrice;
 
-    // Create booking
+    
     const booking = await Booking.create({
       user: req.user._id,
       userName: req.user.name,
@@ -498,12 +495,12 @@ const createBookingFromChat = async (req, res) => {
       status: "requested",
     });
 
-    // Update conversation
+    
     conversation.booking = booking._id;
     conversation.status = "booking_created";
     await conversation.save();
 
-    // Create system message
+    
     const message = await Message.create({
       conversation: conversationId,
       sender: req.user._id,
@@ -517,7 +514,7 @@ const createBookingFromChat = async (req, res) => {
     conversation.unreadCountVendor += 1;
     await conversation.save();
 
-    // Emit socket event
+    
     const io = req.app.get("io");
     if (io) {
       io.to(`conversation:${conversationId}`).emit("booking_created", {
@@ -540,7 +537,7 @@ const createBookingFromChat = async (req, res) => {
   }
 };
 
-// MARK MESSAGES AS READ
+
 const markAsRead = async (req, res) => {
   try {
     const conversationId = req.params.id;
@@ -565,9 +562,9 @@ const markAsRead = async (req, res) => {
       });
     }
 
-    // Mark all unread messages as read
+  
     if (isAdmin) {
-      // Admin marks all non-admin messages as read
+      
       await Message.updateMany(
         {
           conversation: conversationId,
@@ -579,7 +576,7 @@ const markAsRead = async (req, res) => {
           readAt: new Date(),
         }
       );
-      // Reset both unread counts for admin
+      
       conversation.unreadCountUser = 0;
       conversation.unreadCountVendor = 0;
     } else {
@@ -595,7 +592,7 @@ const markAsRead = async (req, res) => {
           readAt: new Date(),
         }
       );
-      // Reset unread count for the current user
+      
       if (isUser) {
         conversation.unreadCountUser = 0;
       } else {
@@ -604,7 +601,7 @@ const markAsRead = async (req, res) => {
     }
     await conversation.save();
 
-    // Emit socket event
+   
     const io = req.app.get("io");
     if (io) {
       io.to(`conversation:${conversationId}`).emit("messages_read", {
@@ -626,7 +623,7 @@ const markAsRead = async (req, res) => {
   }
 };
 
-// CLOSE CONVERSATION
+
 const closeConversation = async (req, res) => {
   try {
     const conversationId = req.params.id;
@@ -639,7 +636,6 @@ const closeConversation = async (req, res) => {
       });
     }
 
-    // Either party or admin can close
     const isAdmin = req.user.role === "admin";
     const isParticipant =
       isAdmin ||
@@ -656,7 +652,7 @@ const closeConversation = async (req, res) => {
     conversation.status = "closed";
     await conversation.save();
 
-    // Create system message
+    
     let senderRole;
     if (isAdmin) senderRole = "admin";
     else if (req.user.role === "vendor") senderRole = "vendor";
@@ -683,7 +679,7 @@ const closeConversation = async (req, res) => {
   }
 };
 
-// UPDATE MESSAGE - Edit message content (within time window)
+
 const updateMessage = async (req, res) => {
   try {
     const { messageId } = req.params;
@@ -704,7 +700,7 @@ const updateMessage = async (req, res) => {
       });
     }
 
-    // Verify sender owns the message
+    
     if (message.sender.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         status: "error",
@@ -712,7 +708,7 @@ const updateMessage = async (req, res) => {
       });
     }
 
-    // Check if message is already deleted
+    
     if (message.isDeleted) {
       return res.status(400).json({
         status: "error",
@@ -720,7 +716,7 @@ const updateMessage = async (req, res) => {
       });
     }
 
-    // Check if within edit window (15 minutes)
+  
     const editWindowMs = 15 * 60 * 1000;
     const messageAge = Date.now() - new Date(message.createdAt).getTime();
     if (messageAge > editWindowMs) {
@@ -730,7 +726,7 @@ const updateMessage = async (req, res) => {
       });
     }
 
-    // Only text messages can be edited
+    
     if (message.messageType !== "text") {
       return res.status(400).json({
         status: "error",
@@ -738,7 +734,7 @@ const updateMessage = async (req, res) => {
       });
     }
 
-    // Store original content if first edit
+    
     if (!message.originalContent) {
       message.originalContent = message.content;
     }
@@ -750,7 +746,7 @@ const updateMessage = async (req, res) => {
 
     await message.populate("sender", "name avatar");
 
-    // Emit socket event for real-time update
+   
     const io = req.app.get("io");
     if (io) {
       io.to(`conversation:${message.conversation}`).emit("message_updated", {
@@ -772,7 +768,7 @@ const updateMessage = async (req, res) => {
   }
 };
 
-// DELETE MESSAGE - Soft delete message
+
 const deleteMessage = async (req, res) => {
   try {
     const { messageId } = req.params;
@@ -785,7 +781,7 @@ const deleteMessage = async (req, res) => {
       });
     }
 
-    // Verify sender owns the message
+    
     if (message.sender.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         status: "error",
@@ -793,7 +789,7 @@ const deleteMessage = async (req, res) => {
       });
     }
 
-    // Check if message is already deleted
+    
     if (message.isDeleted) {
       return res.status(400).json({
         status: "error",
@@ -801,7 +797,7 @@ const deleteMessage = async (req, res) => {
       });
     }
 
-    // Soft delete: preserve original content and mark as deleted
+    
     if (!message.originalContent) {
       message.originalContent = message.content;
     }
@@ -812,7 +808,7 @@ const deleteMessage = async (req, res) => {
 
     await message.populate("sender", "name avatar");
 
-    // Emit socket event for real-time update
+ 
     const io = req.app.get("io");
     if (io) {
       io.to(`conversation:${message.conversation}`).emit("message_deleted", {
@@ -834,7 +830,7 @@ const deleteMessage = async (req, res) => {
   }
 };
 
-// DELETE CONVERSATION (soft delete for current user)
+
 const deleteConversation = async (req, res) => {
   try {
     const conversationId = req.params.id;
@@ -847,7 +843,7 @@ const deleteConversation = async (req, res) => {
       });
     }
 
-    // Verify user is a participant or admin
+    
     const isUser = conversation.user.toString() === req.user._id.toString();
     const isVendor =
       conversation.vendorUser.toString() === req.user._id.toString();
@@ -860,7 +856,7 @@ const deleteConversation = async (req, res) => {
       });
     }
 
-    // Admin can permanently delete conversations
+   
     if (isAdmin) {
       await Message.deleteMany({ conversation: conversationId });
       await Conversation.findByIdAndDelete(conversationId);
@@ -871,18 +867,18 @@ const deleteConversation = async (req, res) => {
       });
     }
 
-    // Soft delete for the current user
+   
     if (isUser) {
       conversation.deletedByUser = true;
     } else {
       conversation.deletedByVendor = true;
     }
 
-    // If both parties have deleted, remove the conversation and its messages
+    
     if (conversation.deletedByUser && conversation.deletedByVendor) {
-      // Delete all messages in this conversation
+    
       await Message.deleteMany({ conversation: conversationId });
-      // Delete the conversation itself
+      
       await Conversation.findByIdAndDelete(conversationId);
 
       return res.status(200).json({
@@ -892,7 +888,7 @@ const deleteConversation = async (req, res) => {
       });
     }
 
-    // Otherwise just save the soft delete flag
+    
     await conversation.save();
 
     return res.status(200).json({

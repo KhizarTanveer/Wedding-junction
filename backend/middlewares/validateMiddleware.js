@@ -1,6 +1,6 @@
 const Joi = require("joi");
 
-// Vendor data schema for signup
+
 const vendorDataSchema = Joi.object({
   businessInfo: Joi.object({
     name: Joi.string().min(2).max(100).required().messages({
@@ -65,7 +65,7 @@ const vendorDataSchema = Joi.object({
   }),
 });
 
-// Validation schemas
+
 const schemas = {
   signup: Joi.object({
     name: Joi.string().min(2).max(50).required().messages({
@@ -82,7 +82,7 @@ const schemas = {
       "string.max": "Password cannot exceed 100 characters",
       "any.required": "Password is required",
     }),
-    // Optional vendor registration fields
+    
     registerAsVendor: Joi.boolean().optional(),
     vendorData: Joi.when("registerAsVendor", {
       is: true,
@@ -272,7 +272,7 @@ const schemas = {
   }),
 };
 
-// Validation middleware factory
+
 const validate = (schemaName) => {
   return (req, res, next) => {
     const schema = schemas[schemaName];
@@ -289,12 +289,12 @@ const validate = (schemaName) => {
       const messages = error.details.map((detail) => detail.message);
       return res.status(400).json({
         status: "error",
-        message: messages[0], // Return first error message
+        message: messages[0], 
         errors: messages,
       });
     }
 
-    req.body = value; // Use sanitized value
+    req.body = value; 
     next();
   };
 };

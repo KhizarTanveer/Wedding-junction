@@ -6,11 +6,11 @@ const Booking = require("../models/booking");
 const VendorApplication = require("../models/vendorApplication");
 const { sendVendorApprovalEmail } = require("../utils/sendEmail");
 
-// ==================== DASHBOARD ====================
+
 
 const getDashboardStats = async (req, res) => {
   try {
-    // Count pending applications from VendorApplication model
+    
     const pendingApplicationsCount = await VendorApplication.countDocuments({
       status: { $in: ["submitted", "under_review", "documents_pending"] },
     });
@@ -28,7 +28,7 @@ const getDashboardStats = async (req, res) => {
       .limit(5)
       .select("userName service price isConfirmed createdAt");
 
-    // Get pending vendor applications from VendorApplication model
+    
     const pendingApplicationsRaw = await VendorApplication.find({
       status: { $in: ["submitted", "under_review", "documents_pending"] },
     })
@@ -37,7 +37,7 @@ const getDashboardStats = async (req, res) => {
       .sort({ submittedAt: -1 })
       .limit(10);
 
-    // Format for frontend compatibility
+    
     const pendingVendorApplications = pendingApplicationsRaw.map((app) => ({
       _id: app.applicant?._id || app._id,
       name: app.applicant?.name || "Unknown",
@@ -69,9 +69,7 @@ const getDashboardStats = async (req, res) => {
   }
 };
 
-// ==================== VENDORS ====================
 
-// Whitelist allowed vendor fields
 const VENDOR_ALLOWED_FIELDS = [
   "name", "service", "category", "description", "image", "images",
   "price", "location", "contact", "isFeatured", "isAvailable",
@@ -79,7 +77,7 @@ const VENDOR_ALLOWED_FIELDS = [
   "specializations", "serviceAreas"
 ];
 
-// Helper to filter object to allowed fields only
+
 const filterObject = (obj, allowedFields) => {
   const filtered = {};
   Object.keys(obj).forEach((key) => {
@@ -158,9 +156,7 @@ const deleteVendor = async (req, res) => {
   }
 };
 
-// ==================== CATEGORIES ====================
 
-// Whitelist allowed category fields
 const CATEGORY_ALLOWED_FIELDS = ["name", "description", "image", "icon", "isActive", "sortOrder"];
 
 const createCategory = async (req, res) => {
@@ -210,7 +206,7 @@ const updateCategory = async (req, res) => {
 
 const deleteCategory = async (req, res) => {
   try {
-    // Check if any vendors use this category
+    
     const vendorsUsingCategory = await Vendor.countDocuments({
       category: req.params.id,
     });
@@ -243,7 +239,7 @@ const deleteCategory = async (req, res) => {
   }
 };
 
-// ==================== VENDOR APPLICATIONS ====================
+
 
 const getVendorApplications = async (req, res) => {
   try {
@@ -251,7 +247,7 @@ const getVendorApplications = async (req, res) => {
 
     const query = {};
     if (status !== "all") {
-      // Support both "pending" and "submitted" for backwards compatibility
+      
       if (status === "pending") {
         query["vendorApplication.status"] = { $in: ["pending", "submitted"] };
       } else {
@@ -279,16 +275,16 @@ const getVendorApplications = async (req, res) => {
 
 const approveVendorApplication = async (req, res) => {
   try {
-    // First try to find by user ID (for backwards compatibility)
+    
     let user = await User.findById(req.params.id);
     let application = null;
 
     if (user && user.vendorApplication) {
-      // Find application by reference in user
+      
       application = await VendorApplication.findById(user.vendorApplication);
     }
 
-    // If not found by user, try finding by application ID directly
+   
     if (!application) {
       application = await VendorApplication.findById(req.params.id);
       if (application) {
@@ -310,7 +306,7 @@ const approveVendorApplication = async (req, res) => {
       });
     }
 
-    // Accept submitted, under_review, or documents_pending statuses
+    
     const validStatuses = ["submitted", "under_review", "documents_pending"];
     if (!validStatuses.includes(application.status)) {
       return res.status(400).json({
@@ -319,33 +315,33 @@ const approveVendorApplication = async (req, res) => {
       });
     }
 
-    // Category is stored in application
+    
     const categoryId = application.serviceDetails?.category || null;
 
-    // Build vendor data from application
+    
     const vendorData = {
       owner: user._id,
       application: application._id,
       status: "active",
-      // Business Info
+      
       businessInfo: {
         name: application.businessInfo?.name,
         description: application.businessInfo?.description,
       },
-      // Legacy fields for backward compatibility
+      
       name: application.businessInfo?.name,
       service: application.serviceDetails?.servicesOffered?.[0] || "General",
       category: categoryId,
       description: application.businessInfo?.description,
       image: "https://images.unsplash.com/photo-1519741497674-611481863552?w=800",
-      // Pricing
+      
       price: application.serviceDetails?.pricing?.minPrice || 0,
       pricing: {
         minPrice: application.serviceDetails?.pricing?.minPrice || 0,
         maxPrice: application.serviceDetails?.pricing?.maxPrice || 0,
         negotiable: true,
       },
-      // Contact
+     
       contact: {
         phone: application.contact?.phone || "",
         alternatePhone: application.contact?.alternatePhone || "",
@@ -357,7 +353,7 @@ const approveVendorApplication = async (req, res) => {
           youtube: application.contact?.socialMedia?.youtube || "",
         },
       },
-      // Location
+    
       location: application.location?.city || "",
       locationDetails: {
         address: application.location?.address || "",
@@ -369,7 +365,7 @@ const approveVendorApplication = async (req, res) => {
         city: area,
         state: application.location?.state || "",
       })),
-      // Experience
+      
       experience: application.serviceDetails?.experience ? `${application.serviceDetails.experience} years` : "",
       experienceDetails: {
         years: application.serviceDetails?.experience || 0,
@@ -383,10 +379,10 @@ const approveVendorApplication = async (req, res) => {
       },
     };
 
-    // Create vendor profile
+    
     const vendor = await Vendor.create(vendorData);
 
-    // Update VendorApplication
+    
     application.status = "approved";
     application.approvedAt = new Date();
     application.review = {
@@ -397,12 +393,12 @@ const approveVendorApplication = async (req, res) => {
     application.vendorProfile = vendor._id;
     await application.save();
 
-    // Update user
+    
     user.role = "vendor";
     user.vendorProfile = vendor._id;
     await user.save();
 
-    // Send approval email
+    
     const vendorName = vendor.name || vendor.businessInfo?.name || "Vendor";
     sendVendorApprovalEmail(user.email, vendorName).catch((err) => {
       console.error("Failed to send vendor approval email:", err.message);
@@ -426,7 +422,7 @@ const rejectVendorApplication = async (req, res) => {
   try {
     const { reason } = req.body;
 
-    // First try to find by user ID (for backwards compatibility)
+    
     let user = await User.findById(req.params.id);
     let application = null;
 
@@ -434,7 +430,7 @@ const rejectVendorApplication = async (req, res) => {
       application = await VendorApplication.findById(user.vendorApplication);
     }
 
-    // If not found by user, try finding by application ID directly
+    
     if (!application) {
       application = await VendorApplication.findById(req.params.id);
       if (application) {
@@ -449,7 +445,7 @@ const rejectVendorApplication = async (req, res) => {
       });
     }
 
-    // Accept submitted, under_review, or documents_pending statuses
+    
     const validStatuses = ["submitted", "under_review", "documents_pending"];
     if (!validStatuses.includes(application.status)) {
       return res.status(400).json({
@@ -458,7 +454,7 @@ const rejectVendorApplication = async (req, res) => {
       });
     }
 
-    // Update application status
+    
     application.status = "rejected";
     application.rejectedAt = new Date();
     application.review = {
@@ -482,7 +478,7 @@ const rejectVendorApplication = async (req, res) => {
   }
 };
 
-// ==================== SERVICES ====================
+
 
 const createService = async (req, res) => {
   try {

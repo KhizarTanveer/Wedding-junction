@@ -4,12 +4,12 @@ const Conversation = require("../models/conversation");
 const Message = require("../models/message");
 const { deleteFromCloudinary } = require("../config/cloudinary");
 
-// GET VENDOR DASHBOARD STATS
+
 const getVendorStats = async (req, res) => {
   try {
     const vendorId = req.vendor._id;
 
-    // Get counts
+    
     const [totalBookings, pendingBookings, confirmedBookings, completedBookings] =
       await Promise.all([
         Booking.countDocuments({ vendor: vendorId }),
@@ -18,25 +18,25 @@ const getVendorStats = async (req, res) => {
         Booking.countDocuments({ vendor: vendorId, status: "completed" }),
       ]);
 
-    // Get active conversations count
+   
     const activeConversations = await Conversation.countDocuments({
       vendorUser: req.user._id,
       status: { $in: ["active", "agreed"] },
     });
 
-    // Get unread messages count
+  
     const unreadMessages = await Conversation.aggregate([
       { $match: { vendorUser: req.user._id } },
       { $group: { _id: null, total: { $sum: "$unreadCountVendor" } } },
     ]);
 
-    // Get recent bookings
+    
     const recentBookings = await Booking.find({ vendor: vendorId })
       .sort({ createdAt: -1 })
       .limit(5)
       .select("userName service price status createdAt vendorAccepted");
 
-    // Get recent conversations
+    
     const recentConversations = await Conversation.find({
       vendorUser: req.user._id,
     })
@@ -45,7 +45,7 @@ const getVendorStats = async (req, res) => {
       .sort({ lastMessageAt: -1 })
       .limit(5);
 
-    // Calculate revenue
+    
     const revenue = await Booking.aggregate([
       {
         $match: {
@@ -84,7 +84,7 @@ const getVendorStats = async (req, res) => {
   }
 };
 
-// GET VENDOR PROFILE
+
 const getVendorProfile = async (req, res) => {
   try {
     const vendor = await Vendor.findOne({ owner: req.user._id }).populate(
@@ -112,7 +112,7 @@ const getVendorProfile = async (req, res) => {
   }
 };
 
-// UPDATE VENDOR PROFILE
+
 const updateVendorProfile = async (req, res) => {
   try {
     const allowedUpdates = [
@@ -163,19 +163,19 @@ const updateVendorProfile = async (req, res) => {
   }
 };
 
-// GET VENDOR BOOKINGS
+
 const getVendorBookings = async (req, res) => {
   try {
     const { status } = req.query;
     const vendorId = req.vendor._id;
 
-    // Validate and sanitize pagination parameters
+    
     let page = parseInt(req.query.page) || 1;
     let limit = parseInt(req.query.limit) || 10;
 
-    // Ensure positive values and cap limit
+    
     page = Math.max(1, page);
-    limit = Math.min(Math.max(1, limit), 100); // Cap at 100 items per page
+    limit = Math.min(Math.max(1, limit), 100); 
 
     const query = { vendor: vendorId };
     if (status && status !== "all") {
@@ -212,7 +212,7 @@ const getVendorBookings = async (req, res) => {
   }
 };
 
-// ACCEPT BOOKING
+
 const acceptBooking = async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id);
@@ -224,7 +224,7 @@ const acceptBooking = async (req, res) => {
       });
     }
 
-    // Verify this booking is for vendor's vendor profile
+   
     if (booking.vendor.toString() !== req.vendor._id.toString()) {
       return res.status(403).json({
         status: "error",
@@ -243,7 +243,7 @@ const acceptBooking = async (req, res) => {
     booking.vendorAcceptedAt = new Date();
     await booking.save();
 
-    // If there's a conversation, send system message
+  
     if (booking.conversation) {
       await Message.create({
         conversation: booking.conversation,
@@ -253,7 +253,7 @@ const acceptBooking = async (req, res) => {
         content: "Vendor has accepted your booking request!",
       });
 
-      // Emit socket event
+      
       const io = req.app.get("io");
       if (io) {
         io.to(`conversation:${booking.conversation}`).emit("booking_accepted", {
@@ -275,7 +275,7 @@ const acceptBooking = async (req, res) => {
   }
 };
 
-// REJECT BOOKING
+
 const rejectBooking = async (req, res) => {
   try {
     const { reason } = req.body;
@@ -288,7 +288,7 @@ const rejectBooking = async (req, res) => {
       });
     }
 
-    // Verify ownership
+    
     if (booking.vendor.toString() !== req.vendor._id.toString()) {
       return res.status(403).json({
         status: "error",
@@ -299,7 +299,7 @@ const rejectBooking = async (req, res) => {
     booking.status = "cancelled";
     await booking.save();
 
-    // If there's a conversation, send system message
+   
     if (booking.conversation) {
       await Message.create({
         conversation: booking.conversation,
@@ -311,12 +311,12 @@ const rejectBooking = async (req, res) => {
           : "Vendor has declined your booking request.",
       });
 
-      // Update conversation status
+      
       await Conversation.findByIdAndUpdate(booking.conversation, {
         status: "closed",
       });
 
-      // Emit socket event
+      
       const io = req.app.get("io");
       if (io) {
         io.to(`conversation:${booking.conversation}`).emit("booking_rejected", {
@@ -339,7 +339,7 @@ const rejectBooking = async (req, res) => {
   }
 };
 
-// COMPLETE BOOKING
+
 const completeBooking = async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id);
@@ -351,7 +351,7 @@ const completeBooking = async (req, res) => {
       });
     }
 
-    // Verify ownership
+    
     if (booking.vendor.toString() !== req.vendor._id.toString()) {
       return res.status(403).json({
         status: "error",
@@ -369,7 +369,7 @@ const completeBooking = async (req, res) => {
     booking.status = "completed";
     await booking.save();
 
-    // Update conversation if exists
+    
     if (booking.conversation) {
       await Conversation.findByIdAndUpdate(booking.conversation, {
         status: "closed",
@@ -397,7 +397,7 @@ const completeBooking = async (req, res) => {
   }
 };
 
-// GET VENDOR CONVERSATIONS
+
 const getVendorConversations = async (req, res) => {
   try {
     const { status } = req.query;
@@ -426,7 +426,7 @@ const getVendorConversations = async (req, res) => {
   }
 };
 
-// UPLOAD PROFILE IMAGE
+
 const uploadProfileImage = async (req, res) => {
   try {
     if (!req.uploadedImage) {
@@ -445,7 +445,7 @@ const uploadProfileImage = async (req, res) => {
       });
     }
 
-    // Update vendor image
+    
     vendor.image = req.uploadedImage.url;
     if (vendor.businessInfo) {
       vendor.businessInfo.logo = req.uploadedImage.url;
@@ -466,7 +466,7 @@ const uploadProfileImage = async (req, res) => {
   }
 };
 
-// UPLOAD GALLERY IMAGES
+
 const uploadGalleryImages = async (req, res) => {
   try {
     if (!req.uploadedImages || req.uploadedImages.length === 0) {
@@ -485,7 +485,7 @@ const uploadGalleryImages = async (req, res) => {
       });
     }
 
-    // Add new images to gallery
+    
     const newGalleryImages = req.uploadedImages.map((img, index) => ({
       url: img.url,
       publicId: img.publicId,
@@ -517,7 +517,7 @@ const uploadGalleryImages = async (req, res) => {
   }
 };
 
-// DELETE GALLERY IMAGE
+
 const deleteGalleryImage = async (req, res) => {
   try {
     const { publicId } = req.params;
@@ -532,7 +532,7 @@ const deleteGalleryImage = async (req, res) => {
       });
     }
 
-    // Find and remove image from gallery
+   
     const gallery = vendor.businessInfo?.gallery;
     if (!gallery || gallery.length === 0) {
       return res.status(404).json({
@@ -552,15 +552,15 @@ const deleteGalleryImage = async (req, res) => {
       });
     }
 
-    // Delete from Cloudinary
+    
     try {
       await deleteFromCloudinary(decodedPublicId);
     } catch (cloudinaryError) {
       console.error("Cloudinary delete error:", cloudinaryError);
-      // Continue even if Cloudinary delete fails
+      
     }
 
-    // Remove from gallery
+    
     vendor.businessInfo.gallery.splice(imageIndex, 1);
     await vendor.save();
 

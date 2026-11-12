@@ -1,25 +1,25 @@
 const Vendor = require("../models/vendor");
 const Category = require("../models/category");
 
-// Escape special regex characters to prevent ReDoS attacks
+
 const escapeRegex = (string) => {
   return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 };
 
-// GET all vendors with pagination
+
 const getVendors = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = Math.min(parseInt(req.query.limit) || 12, 100); // Max 100 per page
+    const limit = Math.min(parseInt(req.query.limit) || 12, 100); 
     const skip = (page - 1) * limit;
 
-    // Optional search and filter - escape regex special characters
+    
     const search = req.query.search ? escapeRegex(req.query.search.trim()) : "";
     const categoryFilter = req.query.category || "";
     const minPrice = Math.max(0, parseInt(req.query.minPrice) || 0);
     const maxPrice = Math.min(parseInt(req.query.maxPrice) || Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER);
 
-    // Build query
+    
     let query = {};
 
     if (search) {
@@ -64,7 +64,7 @@ const getVendors = async (req, res) => {
   }
 };
 
-// GET single vendor by ID
+
 const getVendorById = async (req, res) => {
   try {
     const vendor = await Vendor.findById(req.params.id).populate(
@@ -89,7 +89,7 @@ const getVendorById = async (req, res) => {
   }
 };
 
-// GET featured vendors
+
 const getFeaturedVendors = async (req, res) => {
   try {
     const vendors = await Vendor.find({ isFeatured: true }).populate(
@@ -108,7 +108,7 @@ const getFeaturedVendors = async (req, res) => {
   }
 };
 
-// GET vendors by category name with pagination
+
 const getVendorsByCategory = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
