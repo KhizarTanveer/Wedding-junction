@@ -1,5 +1,5 @@
 const VendorApplication = require("../models/vendorApplication");
-const Vendor = require("../models/vendor");
+const Vendor = require("../models/Vendor");
 const User = require("../models/user");
 const Category = require("../models/category");
 

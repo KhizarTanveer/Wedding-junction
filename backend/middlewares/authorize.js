@@ -1,4 +1,4 @@
-const Vendor = require("../models/vendor");
+const Vendor = require("../models/Vendor");
 
 
 const ROLE_PERMISSIONS = {
@@ -182,7 +182,7 @@ const ownsBooking = (bookingIdParam = "id") => {
  */
 const ownsVendor = (vendorIdParam = "id") => {
   return async (req) => {
-    const Vendor = require("../models/vendor");
+    const Vendor = require("../models/Vendor");
     const vendorId = req.params[vendorIdParam];
     const vendor = await Vendor.findById(vendorId);
 

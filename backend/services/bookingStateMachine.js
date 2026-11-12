@@ -1,5 +1,5 @@
 const Booking = require("../models/booking");
-const Vendor = require("../models/vendor");
+const Vendor = require("../models/Vendor");
 const { VALID_TRANSITIONS, BOOKING_STATUSES } = require("../models/booking");
 
 /**

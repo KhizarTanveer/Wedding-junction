@@ -1,6 +1,6 @@
 const Conversation = require("../models/conversation");
 const Message = require("../models/message");
-const Vendor = require("../models/vendor");
+const Vendor = require("../models/Vendor");
 const Booking = require("../models/booking");
 
 

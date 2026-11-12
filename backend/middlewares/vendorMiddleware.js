@@ -1,4 +1,4 @@
-const Vendor = require("../models/vendor");
+const Vendor = require("../models/Vendor");
 
 
 const vendorOnly = async (req, res, next) => {

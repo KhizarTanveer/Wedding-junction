@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
 const Category = require("./models/category");
-const Vendor = require("./models/vendor");
+const Vendor = require("./models/Vendor");
 const Service = require("./models/service");
 const User = require("./models/user");
 

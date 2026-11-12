@@ -1,6 +1,6 @@
 const Review = require("../models/review");
 const Booking = require("../models/booking");
-const Vendor = require("../models/vendor");
+const Vendor = require("../models/Vendor");
 
 
 const createReview = async (req, res) => {

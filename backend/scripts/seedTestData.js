@@ -8,8 +8,8 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 // Models
-const User = require('../models/User');
-const Category = require('../models/Category');
+const User = require('../models/user');
+const Category = require('../models/category');
 const Vendor = require('../models/Vendor');
 const Booking = require('../models/booking');
 const Conversation = require('../models/conversation');
