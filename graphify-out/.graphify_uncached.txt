@@ -1,0 +1,7 @@
+C:\Users\toshiba\Desktop\wedding-junction-main\wedding-junction\CLAUDE.md
+C:\Users\toshiba\Desktop\wedding-junction-main\wedding-junction\CLIENT_SETUP_GUIDE.md
+C:\Users\toshiba\Desktop\wedding-junction-main\wedding-junction\PROJECT_OVERVIEW.md
+C:\Users\toshiba\Desktop\wedding-junction-main\wedding-junction\README.md
+C:\Users\toshiba\Desktop\wedding-junction-main\wedding-junction\SETUP_GUIDE.md
+C:\Users\toshiba\Desktop\wedding-junction-main\wedding-junction\frontend\public\index.html
+C:\Users\toshiba\Desktop\wedding-junction-main\wedding-junction\frontend\public\favicon.svg
